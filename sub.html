@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>全武器ルーレット</title>
+
+<style>
+*{
+    box-sizing:border-box;
+}
+
+body{
+    margin:0;
+    padding:24px;
+    background:#f7f8fa;
+    font-family:
+        "Yu Gothic",
+        "Hiragino Sans",
+        sans-serif;
+    color:#1f2937;
+}
+
+.container{
+    max-width:700px;
+    margin:0 auto;
+    background:white;
+    border-radius:24px;
+    padding:32px;
+    box-shadow:0 10px 30px rgba(0,0,0,.05);
+}
+
+h1{
+    text-align:center;
+    margin-top:0;
+    margin-bottom:32px;
+}
+
+label{
+    display:block;
+    margin-top:16px;
+    margin-bottom:6px;
+    font-weight:600;
+}
+
+select{
+    width:100%;
+    padding:12px;
+    border:1px solid #d1d5db;
+    border-radius:12px;
+    font-size:1rem;
+}
+
+.count{
+    margin-top:20px;
+    text-align:center;
+    font-size:1.1rem;
+    font-weight:700;
+}
+
+.numberButtons{
+    display:flex;
+    gap:8px;
+    margin-top:12px;
+}
+
+.numberButtons button{
+    flex:1;
+}
+
+button{
+    border:none;
+    border-radius:12px;
+    padding:14px;
+    cursor:pointer;
+    background:white;
+    box-shadow:0 1px 3px rgba(0,0,0,.08);
+    transition:.15s;
+}
+
+button:hover{
+    transform:translateY(-1px);
+}
+
+button.active{
+    background:#2563eb;
+    color:white;
+}
+
+#spinButton{
+    width:100%;
+    margin-top:24px;
+    font-size:1.1rem;
+    font-weight:700;
+}
+
+#results{
+    margin-top:32px;
+}
+
+.resultCard{
+    background:#fafafa;
+    border-radius:16px;
+    padding:18px;
+    margin-bottom:12px;
+    text-align:center;
+}
+
+.resultNumber{
+    font-size:.9rem;
+    color:#6b7280;
+}
+
+.resultWeapon{
+    font-size:1.5rem;
+    font-weight:700;
+    margin-top:6px;
+}
+
+@media(max-width:600px){
+
+    body{
+        padding:16px;
+    }
+
+    .container{
+        padding:20px;
+    }
+
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+
+
+<label>武器種</label>
+<select id="typeFilter"></select>
+
+<label>サブ</label>
+<select id="subFilter"></select>
+
+<label>スペシャル</label>
+<select id="spFilter"></select>
+
+<label>ルーレット数</label>
+
+<div class="numberButtons">
+    <button class="countBtn active" data-count="1">1</button>
+    <button class="countBtn" data-count="2">2</button>
+    <button class="countBtn" data-count="3">3</button>
+    <button class="countBtn" data-count="4">4</button>
+</div>
+
+<div class="count">
+    抽選対象：<span id="targetCount">0</span>種類
+</div>
+
+<button id="spinButton">
+🎲
+</button>
+
+<div id="results"></div>
+
+</div>
+
+<script src="results.js"></script>
+
+<script>
+
+let rouletteCount = 1;
+
+const typeFilter = document.getElementById("typeFilter");
+const subFilter = document.getElementById("subFilter");
+const spFilter = document.getElementById("spFilter");
+const targetCount = document.getElementById("targetCount");
+const resultsDiv = document.getElementById("results");
+
+function getEntries(){
+
+    const list = [];
+
+    for(const [key,weapons] of Object.entries(results2)){
+
+        const [type,sub,sp] = key.split("-");
+
+        for(const weapon of weapons){
+
+            list.push({
+                type,
+                sub,
+                sp,
+                weapon
+            });
+
+        }
+
+    }
+
+    return list;
+
+}
+
+const entries = getEntries();
+
+function fillSelect(select,list){
+
+    select.innerHTML = "";
+
+    const all = document.createElement("option");
+    all.value = "";
+    all.textContent = "全て";
+
+    select.appendChild(all);
+
+    [...new Set(list)]
+    .sort()
+    .forEach(v=>{
+
+        const option = document.createElement("option");
+
+        option.value = v;
+        option.textContent = v;
+
+        select.appendChild(option);
+
+    });
+
+}
+
+fillSelect(
+    typeFilter,
+    entries.map(e=>e.type)
+);
+
+fillSelect(
+    subFilter,
+    entries.map(e=>e.sub)
+);
+
+fillSelect(
+    spFilter,
+    entries.map(e=>e.sp)
+);
+
+function getFilteredWeapons(){
+
+    return entries.filter(e=>{
+
+        if(typeFilter.value && e.type !== typeFilter.value) return false;
+        if(subFilter.value && e.sub !== subFilter.value) return false;
+        if(spFilter.value && e.sp !== spFilter.value) return false;
+
+        return true;
+
+    });
+
+}
+
+function updateCount(){
+
+    targetCount.textContent =
+        getFilteredWeapons().length;
+
+}
+
+typeFilter.addEventListener("change",updateCount);
+subFilter.addEventListener("change",updateCount);
+spFilter.addEventListener("change",updateCount);
+
+updateCount();
+
+document.querySelectorAll(".countBtn")
+.forEach(button=>{
+
+    button.addEventListener("click",()=>{
+
+        document
+        .querySelectorAll(".countBtn")
+        .forEach(b=>b.classList.remove("active"));
+
+        button.classList.add("active");
+
+        rouletteCount =
+            Number(button.dataset.count);
+
+    });
+
+});
+
+function randomWeapon(pool){
+
+    return pool[
+        Math.floor(
+            Math.random()*pool.length
+        )
+    ];
+
+}
+
+document
+.getElementById("spinButton")
+.addEventListener("click",()=>{
+
+    const pool =
+        getFilteredWeapons();
+
+    if(pool.length===0){
+
+        alert("抽選対象がありません");
+
+        return;
+
+    }
+
+    const cards = [];
+
+    resultsDiv.innerHTML = "";
+
+    for(let i=0;i<rouletteCount;i++){
+
+        const card =
+            document.createElement("div");
+
+        card.className = "resultCard";
+
+        card.innerHTML = `
+            <div class="resultNumber">
+                ${i+1}
+            </div>
+            <div class="resultWeapon">
+                ...
+            </div>
+        `;
+
+        resultsDiv.appendChild(card);
+
+        cards.push(
+            card.querySelector(".resultWeapon")
+        );
+
+    }
+
+    let frame = 0;
+
+    const interval =
+        setInterval(()=>{
+
+            cards.forEach(card=>{
+
+                card.textContent =
+                    randomWeapon(pool).weapon;
+
+            });
+
+            frame++;
+
+            if(frame>=25){
+
+                clearInterval(interval);
+
+                cards.forEach(card=>{
+
+                    card.textContent =
+                        randomWeapon(pool).weapon;
+
+                });
+
+            }
+
+        },50);
+
+});
+
+</script>
+
+</body>
+</html>
